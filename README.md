@@ -77,6 +77,38 @@ This is the place for you to write reflections:
 ### Mandatory (Publisher) Reflections
 
 #### Reflection Publisher-1
+1. Dalam Observer pattern misal di Java, Observer dijadikan interface agar Publisher bisa berinteraksi dengan berbagai jenis Subscriber tanpa tahu implementasi spesifiknya. Misal kita punya 2 subscriber, yaitu EmailSubscriber dan WebhookSubscriber yg keduanya implement interface Observer, tapi cara mereka update() berbeda, maka kita butuh interface untuk mengabstraksikan perilaku keduanya.
+
+Sementara itu pada BambangShop, single Model struct sudah cukup karena jika kita lihat struct Subscriber:
+
+pub struct Subscriber {
+    pub url: String,
+    pub name: String,
+}
+
+Struct Subscriber hanya punya field url sebagai satu2nya cara semua subscriber menerima notifikasi, yaitu melalui HTTP request ke URL mereka. Tidak ada field seperti email, phone, atau subscriber_type yang menandakan adanya variasi perilaku antar subscriber. sementara field nama hanya label untuk indentitas subscriber.
+
+Kalau misal ada variasi perilaku, strukturnya mungkin seperti berikut
+
+pub struct Subscriber {
+    pub url: Option<String>,
+    pub email: Option<String>,
+    pub subscriber_type: String, // "webhook", "email", "sms"
+}
+
+Kalau seperti itu, mungkin trait baru diperlukan karena perilaku update() akan berbeda tergantung tipenya. Namun karena semua subscriber di BambangShop melakukan hal yang sama persis, interface tidak diperlukan.
+
+2. Vec adalah list/array dinamis yg menyimpan data secara berurutan berdasarkan index, untuk cari elemen tertentu, harus cek satu per satu dari depan, sedangkan DashMap adalah HashMap yg menyimpan data dalam bentuk key-value, Operasi pencarian dan penghapusan cukup O(1), dan karena key harus unik maka duplikasi otomatis dicegah.
+
+Di BambangShop, operasi yg sering dilakukan adalah mencari, menghapus, dan memastikan tidak ada duplikasi subscriber berdasarkan urlnya. Karena url dan id bersifat unik, mereka sangat cocok dijadikan key di DashMap, hal ini sama seperti di Java kita pakai HashMap<String, Subscriber> bukan ArrayList<Subscriber> untuk data yang punya unique identifier. Vec tidak cukup karena tidak menjamin keunikan dan operasinya tidak efisien untuk kasus ini.
+
+3. Tetap perlu DashMap krn Singleton dan DashMap menyelesaikan masalah yang berbeda.
+
+Singleton pattern memastikan bahwa hanya ada satu instance dari suatu objek di seluruh program, tanpa Singleton, setiap request bisa membuat instance SUBSCRIBERS yang berbeda-beda, sehingga data subscriber terfragmentasi. Dengan Singleton, semua request mengacu ke instance yang sama sehingga data terpusat di satu tempat. Di BambangShop, lazy_static sudah berperan sebagai Singleton.
+
+Adapun Singleton menimbulkan masalah baru, karena hanya ada satu instance dan diakses oleh banyak thread sekaligus, sehingga bisa saja terjadi race condition di mana dua thread menulis ke data yg sama di waktu yang sama dan saling menimpa. Di sini DashMap berperan untuk memastikan akses ke data tersebut aman saat diakses oleh banyak thread secara bersamaan. Rocket menjalankan setiap request di thread yang berbeda, sehingga tanpa DashMap, operasi subscribe dan unsubscribe yang terjadi bersamaan bisa menyebabkan data corrupt.
+
+Jadi keduanya harus ada dan tidak bisa saling menggantikan. Singleton tanpa DashMap berarti data konsisten tapi rawan race condition. DashMap tanpa Singleton berarti thread safe tapi data terfragmentasi di banyak instance.
 
 #### Reflection Publisher-2
 
