@@ -143,4 +143,37 @@ Akibatnya setiap Model menjadi sangat kompleks dan saling bergantung satu sama l
 
 
 #### Reflection Publisher-3
+1. Pada tutorial ini variasi Observer Pattern yg digunakan adalah Push Model, hal ini dapat dilihat dari cara ProductService mengirimkan data langsung ke observer melalui NotificationService.
+
+Misal pada kode:
+NotificationService.notify(&product.product_type, "CREATED", product.clone());
+
+Publisher tidak hanya mengirim sinyal bahwa terjadi perubahan, tp juga langsung mengirimkan data produk dalam bentuk hasil cloningan product tsb, pada implementasi NotificationService, data tersebut diolah menjadi sebuah payload Notification yang berisi informasi lengkap seperti judul produk, tipe produk, URL produk, nama subscriber, status (CREATED, DELETED, PROMOTION), yang mana Payload ini kemudian dikirim ke setiap subscriber melalui potongan kode tsb:
+
+subscriber_clone.update(payload_clone);
+
+Hal ini menunjukkan bahwa data dikirim secara langsung dan lengkap dan observer tidak perlu mengambil data tambahan. Oleh karena itu, implementasi ini merupakan Push Model karena data sudah diproses dan dipersonalisasi sebelum dikirim.
+
+2. Jika pada kasus ini digunakan Pull Model, di mana observer harus mengambil data sendiri dari publisher, maka
+
+Kelebihan:
+- Observer lebih fleksibel dalam memilih data yg dibutuhkan
+- Mengurangi pengiriman data yg tidak diperlukan
+- Decoupling lebih tinggi karena publisher tidak perlu mengetahui kebutuhan detail observer
+
+Kekurangan:
+- Observer harus melakukan request tambahan ke sumber data 
+- Potensi terjadi overhead jika banyak observer melakukan pengambilan data berulang
+- Update bisa sj jadi tidak realtime karena bergantung pada kapan observer mengambil data
+
+Dalam konteks tutrorial ini, Pull Model kurang cocok karena disini sistem sudah menyiapkan payload yang lengkap dan siap digunakan, sedangkan
+Observer hanya bertugas mengeksekusi tanpa perlu logika tambahan.
+
+3. Pada implementasi NotificationService, notifikasi dikirim menggunakan multithreading yg ditunjukkan pada potongan kode tsb
+
+thread::spawn(move || subscriber_clone.update(payload_clone));
+
+Artinya, setiap notifikasi ke subscriber dijalankan secara paralel. Adapun jika pada tutorial ini kita mmutuskan untuk tidak menggunakan multithreading, dampaknya adalah proses notifikasi akan berjalan secara sequential, sehingga misal jika satu subscriber lambat maka subscriber lain harus menunggu. Akibatnya sistem menjadi kurang responsif dan resiko bottleneck meningkat jika jumlah subscriber banyak.
+
+Adapun jika tidak menggunakan multithreading, kelebihan yg didapat adalah implementasi yg lebih sederhana, dan tidak perlu menangani permasalahan concurrency seperti race condition. Namun, dalam sistem ini yang melibatkan banyak subscriber, multi-threading memberikan keuntungan besar dalam hal performa, efisiensi, dan responsivitas.
 
