@@ -111,5 +111,36 @@ Adapun Singleton menimbulkan masalah baru, karena hanya ada satu instance dan di
 Jadi keduanya harus ada dan tidak bisa saling menggantikan. Singleton tanpa DashMap berarti data konsisten tapi rawan race condition. DashMap tanpa Singleton berarti thread safe tapi data terfragmentasi di banyak instance.
 
 #### Reflection Publisher-2
+1. Berdasarkan Single Responsibility Principle, setiap class atau module hanya bertanggungjawab atas satu hal.
+Misal kalau Model menangani semuanya, maka satu class akan bertanggung jawab atas tiga hal sekaligus:
+
+- Struktur data, yaitu seperti apa bentuk datanya
+- Business logic, seperti validasi, kalkulasi, dst
+- Akses data, yaitu cara menyimpan dan mengambil data dari database
+
+Hal ini melanggar SRP, karena kalau database diganti, atau business logic berubah, atau struktur data berubah, semuanya mengubah satu class yang sama. Dengan memisahkan Model, Repository, dan Service berdasarkan tanggungjawab berikut:
+
+- Model, hanya mendefinisikan struktur data
+- Repository, hanya menangani akses dan penyimpanan data
+- Service, hanya menangani business logic
+
+Setiap lapisan bisa berubah secara independen tanpa mempengaruhi lapisan lain.
+
+2. Jika kita hanya menggunakan Model, akibatnya adalah Model Product, Subscriber, dan Notification harus saling berinteraksi langsung tanpa Service dan Repository.
+
+Product harus tahu cara menyimpan dirinya sendiri ke database, harus tahu cara mengambil daftar Subscriber yg follow, jga harus tahu cara membuat Notification dan cara mengirimkannya.
+
+Subscriber harus tahu cara menyimpan dirinya sendiri, juga harus tahu cara mengambil Product yg dia ikuti.
+
+Notification harus tahu cara membuat dirinya sendiri berdasarkan event dari Program, sekaligus cara mengirimkan dirinya sendiri ke Subscriber.
+
+Akibatnya setiap Model menjadi sangat kompleks dan saling bergantung satu sama lain, Perubahan kecil di Subscriber bisa merusak Program karena Program langsung bergantung ke Subscriber. Kode jd sulit dibaca, sulit ditest, dan sulit dimaintain.
+
+3. Ya, menurut saya Postman sangat membantu dalam testing BambangShop karena kita bisa mengirim HTTP request (GET, POST, DELETE) ke endpoint yang tersedia tanpa perlu membuat frontend terlebih dahulu. Beberapa fitur yg berguna menurut saya adalah:
+- Environment Variables, kita bisa menyimpan base URL seperti http://127.0.0.1:8000 sebagai variable, sehingga kalau port berubah cukup ubah di satu tempat tanpa harus update semua endpoint satu2.
+- Request History, semua request yang pernah dikirim tersimpan, mudah untuk mengulang test yang sama.
+- Response Viewer, response dari server ditampilkan dengan JSON terformat sehingga mudah dibaca.
+
 
 #### Reflection Publisher-3
+
